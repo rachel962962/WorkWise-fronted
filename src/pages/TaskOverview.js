@@ -1,154 +1,52 @@
-// import { useState } from 'react';
-
-// const initialTasks = {
-//   unassigned: [
-//     { id: 1, title: 'Design Homepage', priority: 'High' },
-//     { id: 2, title: 'Setup Database', priority: 'Medium' },
-//   ],
-//   assigned: [
-//     { id: 3, title: 'Create API Documentation', priority: 'Low' },
-//     { id: 4, title: 'Implement Authentication', priority: 'High' },
-//   ],
-//   inProgress: [
-//     { id: 5, title: 'Mobile Responsive Design', priority: 'Medium' },
-//     { id: 6, title: 'Unit Testing', priority: 'High' },
-//   ],
-//   done: [
-//     { id: 7, title: 'Project Setup', priority: 'Medium' },
-//     { id: 8, title: 'Initial Planning', priority: 'Low' },
-//   ],
-// };
-
-// export default function TaskOverview() {
-//   const [tasks, setTasks] = useState(initialTasks);
-
-//   const handleDragStart = (e, taskId, sourceStatus) => {
-//     e.dataTransfer.setData('taskId', taskId);
-//     e.dataTransfer.setData('sourceStatus', sourceStatus);
-//   };
-
-//   const handleDrop = (e, targetStatus) => {
-//     e.preventDefault();
-//     const taskId = parseInt(e.dataTransfer.getData('taskId'));
-//     const sourceStatus = e.dataTransfer.getData('sourceStatus');
-
-//     if (sourceStatus !== targetStatus) {
-//       setTasks(prev => {
-//         const task = prev[sourceStatus].find(t => t.id === taskId);
-//         return {
-//           ...prev,
-//           [sourceStatus]: prev[sourceStatus].filter(t => t.id !== taskId),
-//           [targetStatus]: [...prev[targetStatus],task],
-//         };
-//       });
-//     }
-//   };
-
-//   const handleDragOver = (e) => {
-//     e.preventDefault();
-//   };
-
-//   const getStatusColor = (status) => {
-//     switch (status) {
-//       case 'unassigned': return 'bg-gray-100';
-//       case 'assigned': return 'bg-blue-100';
-//       case 'inProgress': return 'bg-yellow-100';
-//       case 'done': return 'bg-green-100';
-//       default: return 'bg-gray-100';
-//     }
-//   };
-
-//   const renderColumn = (status, title) => (
-//     <div
-//       className={`${getStatusColor(status)} p-4 rounded-lg shadow`}
-//       onDrop={(e) => handleDrop(e, status)}
-//       onDragOver={handleDragOver}
-//     >
-//       <h3 className="font-medium text-gray-900 mb-4">{title}</h3>
-//       <div className="space-y-2">
-//         {tasks[status].map((task) => (
-//           <div
-//             key={task.id}
-//             draggable
-//             onDragStart={(e) => handleDragStart(e, task.id, status)}
-//             className="bg-white p-3 rounded shadow-sm cursor-move"
-//           >
-//             <p className="text-sm font-medium text-gray-900">{task.title}</p>
-//             <span className={`inline-flex mt-1 rounded-full px-2 text-xs font-semibold ${
-//               task.priority === 'High' ? 'bg-red-100 text-red-800' :
-//               task.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-//               'bg-green-100 text-green-800'
-//             }`}>
-//               {task.priority}
-//             </span>
-//           </div>
-//         ))}
-//       </div>
-//     </div>
-//   );
-
-//   return (
-//     <div className="space-y-6">
-//       <h1 className="text-2xl font-semibold text-gray-900">Task Overview</h1>
-      
-//       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-//         {renderColumn('unassigned', 'Unassigned')}
-//         {renderColumn('assigned', 'Assigned')}
-//         {renderColumn('inProgress', 'In Progress')}
-//         {renderColumn('done', 'Done')}
-//       </div>
-//     </div>
-//   );
-// }
-
-import { useState } from 'react';
-
-const initialTasks = {
-  unassigned: [
-    { id: 1, title: 'עיצוב דף הבית', priority: 'גבוהה' },
-    { id: 2, title: 'הקמת מסד נתונים', priority: 'בינונית' },
-  ],
-  assigned: [
-    { id: 3, title: 'תיעוד API', priority: 'נמוכה' },
-    { id: 4, title: 'מימוש אימות משתמשים', priority: 'גבוהה' },
-  ],
-  inProgress: [
-    { id: 5, title: 'עיצוב מותאם לנייד', priority: 'בינונית' },
-    { id: 6, title: 'בדיקות יחידה', priority: 'גבוהה' },
-  ],
-  done: [
-    { id: 7, title: 'הגדרת פרויקט', priority: 'בינונית' },
-    { id: 8, title: 'תכנון ראשוני', priority: 'נמוכה' },
-  ],
-};
-
+import { useState, useEffect } from 'react';
+import {
+  getAssignedTasks,
+  getUnassignedTasks,
+  getCompletedTasks,
+  getInProgressTasks,
+  getCancelledTasks
+} from '../services/api_requests'; 
 export default function TaskOverview() {
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState({
+    unassigned: [],
+    assigned: [],
+    inProgress: [],
+    completed: [],
+    cancelled: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const handleDragStart = (e, taskId, sourceStatus) => {
-    e.dataTransfer.setData('taskId', taskId);
-    e.dataTransfer.setData('sourceStatus', sourceStatus);
-  };
+  useEffect(() => {
+    loadAllTasks();
+  }, []);
 
-  const handleDrop = (e, targetStatus) => {
-    e.preventDefault();
-    const taskId = parseInt(e.dataTransfer.getData('taskId'));
-    const sourceStatus = e.dataTransfer.getData('sourceStatus');
+  const loadAllTasks = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    if (sourceStatus !== targetStatus) {
-      setTasks(prev => {
-        const task = prev[sourceStatus].find(t => t.id === taskId);
-        return {
-          ...prev,
-          [sourceStatus]: prev[sourceStatus].filter(t => t.id !== taskId),
-          [targetStatus]: [...prev[targetStatus], task],
-        };
+      const [unassigned, assigned, inProgress, completed, cancelled] = await Promise.all([
+        getUnassignedTasks(),
+        getAssignedTasks(),
+        getInProgressTasks(),
+        getCompletedTasks(),
+        getCancelledTasks()
+      ]);
+
+      setTasks({
+        unassigned,
+        assigned,
+        inProgress,
+        completed,
+        cancelled
       });
+    } catch (err) {
+      setError('שגיאה בטעינת המשימות');
+      console.error('Error loading tasks:', err);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
   };
 
   const getStatusColor = (status) => {
@@ -156,49 +54,121 @@ export default function TaskOverview() {
       case 'unassigned': return 'bg-gray-100';
       case 'assigned': return 'bg-blue-100';
       case 'inProgress': return 'bg-yellow-100';
-      case 'done': return 'bg-green-100';
+      case 'completed': return 'bg-green-100';
+      case 'cancelled': return 'bg-red-100';
       default: return 'bg-gray-100';
     }
   };
 
-  const renderColumn = (status, title) => (
+  const getStatusTitle = (status) => {
+    switch (status) {
+      case 'unassigned': return 'לא משויכות';
+      case 'assigned': return 'משויכות';
+      case 'inProgress': return 'בתהליך';
+      case 'completed': return 'הושלמו';
+      case 'cancelled': return 'בוטלו';
+      default: return status;
+    }
+  };
+
+  const renderColumn = (status) => (
     <div
+      key={status}
       className={`${getStatusColor(status)} p-4 rounded-lg shadow`}
-      onDrop={(e) => handleDrop(e, status)}
-      onDragOver={handleDragOver}
     >
-      <h3 className="font-medium text-gray-900 mb-4">{title}</h3>
+      <h3 className="font-medium text-gray-900 mb-4">
+        {getStatusTitle(status)} ({tasks[status].length})
+      </h3>
       <div className="space-y-2">
         {tasks[status].map((task) => (
           <div
             key={task.id}
-            draggable
-            onDragStart={(e) => handleDragStart(e, task.id, status)}
-            className="bg-white p-3 rounded shadow-sm cursor-move"
+            className="bg-white p-3 rounded shadow-sm cursor-move hover:shadow-md transition-shadow"
           >
-            <p className="text-sm font-medium text-gray-900">{task.title}</p>
-            <span className={`inline-flex mt-1 rounded-full px-2 text-xs font-semibold ${
-              task.priority === 'גבוהה' ? 'bg-red-100 text-red-800' :
-              task.priority === 'בינונית' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-green-100 text-green-800'
-            }`}>
-              {task.priority}
-            </span>
+<p className="text-sm font-medium text-gray-900">{task.name}</p>
+{task.priorityLevel !== undefined && task.priorityLevel !== null && (
+  <span
+    className={`inline-flex mt-1 rounded-full px-2 text-xs font-semibold ${
+      task.priorityLevel >= 7 
+        ? 'bg-red-100 text-red-800'
+        : task.priorityLevel >= 4
+        ? 'bg-yellow-100 text-yellow-800'
+        : 'bg-green-100 text-green-800'
+    }`}
+  >
+    רמת חשיבות: {task.priorityLevel >= 7
+      ? 'גבוהה'
+      : task.priorityLevel >= 4
+      ? 'בינונית'
+      : 'נמוכה'}
+  </span>
+)}
+{task.complexityLevel !== undefined && task.complexityLevel !== null && (
+  <span
+    className={`inline-flex mt-1 rounded-full px-2 text-xs font-semibold ${
+      task.complexityLevel >= 7 
+        ? 'bg-red-100 text-red-800'
+        : task.complexityLevel >= 4
+        ? 'bg-yellow-100 text-yellow-800'
+        : 'bg-green-100 text-green-800'
+    }`}
+  >
+    רמת קושי: {task.complexityLevel >= 7
+      ? 'גבוהה'
+      : task.complexityLevel >= 4
+      ? 'בינונית'
+      : 'נמוכה'}
+  </span>
+)}
+{task.deadline && (
+  <p className="text-xs text-gray-600 mt-1">
+    דדליין: {new Date(task.deadline).toLocaleDateString('he-IL')}
+  </p>
+)}
+
           </div>
         ))}
+        {tasks[status].length === 0 && (
+          <div className="text-center text-gray-500 text-sm py-4">
+            אין משימות
+          </div>
+        )}
       </div>
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64" dir="rtl">
+        <div className="text-lg text-gray-600">טוען משימות...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6" dir="rtl">
-      <h1 className="text-2xl font-semibold text-gray-900">סקירת משימות</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold text-gray-900">סקירת משימות</h1>
+        <button
+          onClick={loadAllTasks}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          רענן
+        </button>
+      </div>
       
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {renderColumn('unassigned', 'לא משויכות')}
-        {renderColumn('assigned', 'משויכות')}
-        {renderColumn('inProgress', 'בתהליך')}
-        {renderColumn('done', 'בוצע')}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="text-red-800">{error}</div>
+        </div>
+      )}
+      
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
+        {renderColumn('unassigned')}
+        {renderColumn('assigned')}
+        {renderColumn('inProgress')}
+        {renderColumn('completed')}
+        {renderColumn('cancelled')}
       </div>
     </div>
   );

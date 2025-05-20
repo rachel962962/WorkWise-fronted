@@ -80,14 +80,15 @@ useEffect(() => {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900">{worker.firstName} {worker.lastName}</p>
               <div className="mt-1 flex flex-wrap gap-2">
-                {worker.skills&&worker.skills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
-                  >
-                    {skill}
-                  </span>
-                ))}
+{worker.skills && worker.skills.map((skill) => (
+  <span
+    key={skill.skillId}
+    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
+  >
+    {skill.name}
+  </span>
+))}
+
               </div>
               <p className="text-sm text-gray-500 mt-1">
                 <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
